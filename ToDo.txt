@@ -1,0 +1,2 @@
+Opravit funkci pro fsolve - stále nefunguje
+Zajistit, že konstantní délky lan zůstanou opravdu konstantní - jak?
