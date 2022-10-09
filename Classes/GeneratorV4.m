@@ -199,15 +199,13 @@ classdef GeneratorV4 < TensegritySettings
                             catch exception_inner
                                 disp(exception_inner.message)
                             end
-
-%                             obj.moveTo([0.00,0.001,0.0], [0.00,0,0],1)
                     end
                     obj.phase = obj.phase +1;
                 catch exception
                     disp("Something went wrong: "+exception);
                 end
                 %Krok 1 - nastavení výchozí polohy
-                if actual_time > 50
+                if actual_time > 150
                     obj.stopSimulation();
                 end 
             end

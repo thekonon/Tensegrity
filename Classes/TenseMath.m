@@ -115,7 +115,7 @@ classdef TenseMath < matlab.mixin.SetGet
             %Vstupem je poloha x a y, z se musí dopočítat
             N_mid = N(1:2,4:9);
 
-            options = optimoptions('fsolve', 'Display', 'off', 'FunctionTolerance', 1e-8, ...
+            options = optimoptions('fsolve', 'Display', 'off', 'FunctionTolerance', 1e-11, ...
                 'MaxFunctionEvaluations', 1e9);
             [N_mid_opt, exit_val, flag] = fsolve(@obj.minFcn2, N_mid, options);
             disp("Chyba řešení: "+norm(exit_val))
