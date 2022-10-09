@@ -190,10 +190,10 @@ classdef GeneratorV4 < TensegritySettings
                             obj.moveTo2([0,0,0], [0,0,0])
                         otherwise
                             try
-                                x = 0.0025 * sin(2*pi*obj.phase/40);
+                                x = 0.001 * sin(2*pi*obj.phase/40);
                                 y = 0;
-                                if obj.phase > 30
-                                    y = 0.000 * sin(2*pi*(obj.phase-20)/60);
+                                if obj.phase > 10
+                                    y = 0.001 * cos(2*pi*obj.phase/40);
                                 end
                                 obj.moveTo2([x,y,0], [0,0,0], 0)
                             catch exception_inner
