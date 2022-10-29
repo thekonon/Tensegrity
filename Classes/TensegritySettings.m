@@ -1,10 +1,11 @@
 classdef TensegritySettings < matlab.mixin.SetGet
     %Třída obsahuje základní parametry úlohy
+    %Jednotlivé properties by to chtělo předělat na classy
 
     properties
-        bars
-        cables
-        frames
+        bars    bars
+        cables  cables
+        frames  frames
         nodes
     end
 
@@ -17,19 +18,22 @@ classdef TensegritySettings < matlab.mixin.SetGet
             %první argument - index lana
             %druhý - jeho měrná tuhost
             %obj.cables.specific_stiffness(varargin{1}) = varargin{2};
+            %% Výpočet matic konektivity
+            obj.calculateConnectivityMatrixes()
             %% Zde se ze zadaných hodnot dopočítají polohy uzlů
             obj.initialNodesGuess();
             
             %Délky lan je třeba dopočítat z původního odhadu (délky
             %paralelních pružin například)
-            coresponding_nodes_cables = obj.nodes(:,obj.cables.from_to');
-            obj.cables.free_length = sqrt(sum((coresponding_nodes_cables(:,1:2:end)-coresponding_nodes_cables(:,2:2:end)).^2,1));
+            obj.cables.free_length = sqrt(sum((obj.nodes*obj.cables.connectivity_matrix').^2));
             load steady_state_nodes.mat nodes
             obj.nodes = nodes'; %Které je možné přepsat třeba přesnějším
 %                                     řešením
             %% Dopočet počátečních souřadnic
             %tj natočení tyčí, polohy středů pro SimScape
             obj.calculateInitialCoordinates();
+            %% Dopočet natočení end-efektoru
+            obj.calculateEndEfector();
 
         end
     end
@@ -41,10 +45,15 @@ classdef TensegritySettings < matlab.mixin.SetGet
             obj.setFrames();
         end
         function setBars(obj)
+            obj.bars = bars();
             obj.bars.count = 6;
             obj.bars.lengths =      ones(obj.bars.count,1)*0.3;
             obj.bars.diameters =    ones(obj.bars.count,1)*0.01;
-            obj.bars.densitys =     ones(obj.bars.count,1)*1000;
+            obj.bars.densitys =     ones(obj.bars.count,1)*3000;
+            obj.bars.masses =   obj.bars.lengths.*obj.bars.diameters.^2/4.*obj.bars.densitys;
+            obj.bars.inertias_x = 1/12*obj.bars.masses.*obj.bars.lengths.^2;
+            obj.bars.inertias_y = obj.bars.inertias_x;
+            obj.bars.inertias_z = obj.bars.masses.*(obj.bars.diameters/2).^2;
             obj.bars.from_to = [1 4;...
                 2 5
                 3 6
@@ -62,6 +71,7 @@ classdef TensegritySettings < matlab.mixin.SetGet
                 10 12];
         end
         function setCables(obj)
+            obj.cables = cables();
             obj.cables.count = 18;
             obj.cables.specific_stiffness = ones(obj.cables.count,1)*4000;
             obj.cables.specific_dumpings = ones(obj.cables.count,1)*400;
@@ -90,6 +100,7 @@ classdef TensegritySettings < matlab.mixin.SetGet
                 8 11];  %18
         end
         function setFrames(obj)
+            obj.frames = frames();
             obj.frames.radius_mid = 0.12;
             obj.frames.rotation1 = -120;
             obj.frames.rotation2 = -60;
@@ -103,6 +114,8 @@ classdef TensegritySettings < matlab.mixin.SetGet
             obj.frames.radius_bot = 0.1;
             obj.frames.radius_top = 0.1;
             obj.frames.type = 1;
+            
+
         end
         function initialNodesGuess(obj)
             obj.nodes = zeros(3,max(obj.bars.from_to(:)));
@@ -143,8 +156,28 @@ classdef TensegritySettings < matlab.mixin.SetGet
                 obj.bars.rotation_matrixes(:,:,i) = rotation_matrix;
             end
         end
+        function calculateEndEfector(obj)
+            temp_nodes = obj.nodes(:,end-2:end);
+            obj.frames.mid_point = mean(temp_nodes,2);
+            obj.frames.x = obj.frames.mid_point(1);
+            obj.frames.y = obj.frames.mid_point(2);
+            obj.frames.z = obj.frames.mid_point(3);
+            obj.frames.xd = 0;
+            obj.frames.yd = 0;
+            obj.frames.zd = 0;
+
+
+            %abc koeficienty rovnice ax+by+cz+1 = 0
+            abc = (temp_nodes')\(ones(3,1));
+            obj.frames.px = atan2(abc(1), abc(3));
+            obj.frames.py = atan2(abc(2), abc(3));
+            obj.frames.pz = 0; 
+            obj.frames.pxd = 0;
+            obj.frames.pyd = 0;
+            obj.frames.pzd = 0;
+        end
     end
-    methods(Access = private) %Pomocné funkce
+    methods(Access = public) %Pomocné funkce
         function vector = angle2vector(~, angle_d)
             vector = [cosd(angle_d), sind(angle_d)];
         end
@@ -162,6 +195,28 @@ classdef TensegritySettings < matlab.mixin.SetGet
             R1 = Rx(-alpha);
             R2 = Ry(beta);
             R = R1*R2;
+        end
+
+        function calculateConnectivityMatrixes(obj)
+            %Matice konektivity pro tyče
+%             n = size(obj.bars.from_to,1);    %Celkem prvků
+%             m = obj.frames.nodes_count;        %Celkem uzlů
+%             C = zeros(n,m);
+%             for i = 1:n
+%                 C(i,:) = obj.e(from_to(i, 2), m) - obj.e(from_to(i, 1), m);
+%             end
+            %Matice konektivity pro lana
+            n = size(obj.cables.from_to,1);  %Celkem prvků;
+            m = obj.frames.nodes_count;      %Celkem uzlů;
+            C = zeros(n,m);
+            for i = 1:n
+                C(i,:) = obj.e(obj.cables.from_to(i,2), m) - obj.e(obj.cables.from_to(i,1), m);
+            end
+            obj.cables.connectivity_matrix = C;
+        end
+        function vec = e(~,i,n)
+            vec = zeros(n,1);
+            vec(i) = 1;
         end
     end
 end
