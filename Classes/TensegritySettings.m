@@ -73,8 +73,8 @@ classdef TensegritySettings < matlab.mixin.SetGet
         function setCables(obj)
             obj.cables = cables();
             obj.cables.count = 18;
-            obj.cables.specific_stiffness = ones(obj.cables.count,1)*4000;
-            obj.cables.specific_dumpings = ones(obj.cables.count,1)*400;
+            obj.cables.specific_stiffness = ones(obj.cables.count,1)*200;
+            obj.cables.specific_dumpings = ones(obj.cables.count,1)*30;
             obj.cables.stiffness = ones(obj.cables.count,1)*25;
             obj.cables.dumpings = ones(obj.cables.count,1)*10;
             obj.cables.variable_cables_indexes = [7,8,9,13,14,15];
